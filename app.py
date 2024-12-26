@@ -29,10 +29,10 @@ teams_df = pd.DataFrame(teams_data)
 
 selected_team = st.selectbox(
     "Select a team", 
-    teams_df["team_name"].tolist(),
+    sorted(teams_df["team_name"].tolist()),
     index=None
 )
 
 if selected_team:
-    team_url = teams_df[teams_df["team_name"] == selected_team]["team_url"].values[0]
+    team_url = teams_df.loc[teams_df["team_name"] == selected_team]["team_url"].values[0]
     st.write(team_url)
