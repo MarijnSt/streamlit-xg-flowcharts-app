@@ -20,11 +20,9 @@ def get_team_data():
         team_name = team_cell.text.strip()
         if team_name:
             team_url = team_cell.find("a")["href"]
-            team_logo = team_cell.find("img")["src"]
             teams_data.append({
                 "team_name": team_name, 
                 "team_url": f"https://fbref.com/{team_url}", 
-                "team_logo": team_logo
             })
 
     teams_df = pd.DataFrame(teams_data)
@@ -98,3 +96,54 @@ if selected_team:
         matches_df['match_label'].tolist(),
         index=None
     )
+
+if selected_team and selected_match:
+    match_data = matches_df.loc[matches_df["match_label"] == selected_match].iloc[0]
+    match_report_link = match_data["match_report_link"]
+    response = requests.get(match_report_link)
+    soup = BeautifulSoup(response.text, 'html.parser')
+    st.write(selected_team)
+    st.write(match_data)
+    st.write(match_report_link)
+
+    # GET SUMMARY DATA
+    events_wrap_div = soup.find("div", {"id": "events_wrap"})
+    #st.write(events_wrap_div)
+    # Get team logos
+    team_logos = events_wrap_div.find("div").find("div").find_all("img")
+    home_logo = team_logos[0]["src"]
+    away_logo = team_logos[1]["src"]
+    st.write(home_logo)
+    st.write(away_logo)
+
+    # Get events
+    events_list = []
+    summary_events = events_wrap_div.find_all("div", {"class": "event"})
+    for event in summary_events:
+        # init event type
+        event_type = None
+        # check for goal
+        if "goal" in event.text.lower():
+            event_type = "Goal"
+        # check for own goal
+        if "own goal" in event.text.lower():
+            event_type = "Own goal"
+        # check for red card
+        if "red card" in event.text.lower() or "second yellow card" in event.text.lower():
+            event_type = "Red card"
+
+        if event_type:
+            event_minute = event.find("div").text.strip().split("’")[0].split("+")[0]
+            player_name = event.find("a").text.strip()
+            team = "Home" if event.get("class")[1] == "a" else "Away"
+            events_list.append({
+                "event_minute": event_minute,
+                "event_type": event_type,
+                "player_name": player_name,
+                "team": team
+            })
+
+    events_df = pd.DataFrame(events_list)
+    st.write(events_df)
+
+    # GET SHOTS DATA
