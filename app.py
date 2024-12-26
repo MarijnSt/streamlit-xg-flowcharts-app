@@ -6,8 +6,7 @@ from bs4 import BeautifulSoup
 
 st.title("Belgian Pro League xG Flowcharts")
 
-# GET TEAM LIST
-
+# GET TEAM DATA
 @st.cache_data
 def get_team_data():
     competition_url = "https://fbref.com/en/comps/37/Belgian-Pro-League-Stats"
@@ -38,15 +37,14 @@ selected_team = st.selectbox(
     index=None
 )
 
-# GET MATCHES LIST
-if selected_team:
-    today = datetime.now().date()
-    team_url = teams_df.loc[teams_df["team_name"] == selected_team]["team_url"].values[0]
+# GET MATCHES DATA FOR SELECTED TEAM
+@st.cache_data
+def get_matches_data(team_url, today):
     response = requests.get(team_url)
     soup = BeautifulSoup(response.text, 'html.parser')
     table = soup.find('table', {'id': 'matchlogs_for'})
     matches_data = []
-    
+
     for row in table.find("tbody").find_all("tr"):
         # Get match date
         date_element = row.find("th", {"data-stat": "date"})
@@ -71,17 +69,32 @@ if selected_team:
             goals_against = row.find("td", {"data-stat": "goals_against"}).text.strip()
             score = f"{goals_for} - {goals_against}" if match_venue == "(H)" else f"{goals_against} - {goals_for}"
 
-            # Add to matches_list
-            #matches_list.append(f"{match_date} {match_opponent} {match_venue} {score}")
+            # Get link to match report
+            match_report_link_href = row.find("td", {"data-stat": "match_report"}).find("a")["href"]
+            match_report_link = f"https://fbref.com{match_report_link_href}"
+
+            # Set label for selectbox
+            match_label = f"{match_date} {match_opponent} {match_venue} {score}"
+
             matches_data.append({
                 "match_date": match_date,
                 "match_opponent": match_opponent,
                 "match_venue": match_venue,
-                "score": score
+                "score": score,
+                "match_label": match_label,
+                "match_report_link": match_report_link
             })
+
+    matches_df = pd.DataFrame(matches_data)
+    return matches_df
+
+if selected_team:
+    today = datetime.now().date()
+    team_url = teams_df.loc[teams_df["team_name"] == selected_team]["team_url"].values[0]
+    matches_df = get_matches_data(team_url, today)
     
     selected_match = st.selectbox(
         "Select a match", 
-        [f"{match['match_date']} {match['match_opponent']} {match['match_venue']} {match['score']}" for match in matches_data],
+        matches_df['match_label'].tolist(),
         index=None
     )
