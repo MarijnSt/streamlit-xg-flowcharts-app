@@ -274,8 +274,8 @@ if selected_team and selected_match:
                     alpha= 0.5
                 )
 
-
-    add_event_markers(events_df, home_team, home_color)
-    add_event_markers(events_df, away_team, away_color)
+    if not events_df.empty:
+        add_event_markers(events_df, home_team, home_color)
+        add_event_markers(events_df, away_team, away_color)
     # show plot
     st.pyplot(fig)
