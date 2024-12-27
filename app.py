@@ -108,21 +108,20 @@ if selected_team and selected_match:
     st.write(match_report_link)
 
     # GET SUMMARY DATA
-    events_wrap_div = soup.find("div", {"id": "events_wrap"})
 
-    # Get team logos
-    team_logos = events_wrap_div.find("div").find("div").find_all("img")
-    home_logo = team_logos[0]["src"]
-    away_logo = team_logos[1]["src"]
-    st.write(home_logo)
-    st.write(away_logo)
-    st.image(home_logo, width=100)
-    st.image(away_logo, width=100)
+    # Get team info
+    home_team = selected_team if match_data["match_venue"] == "(H)" else match_data["match_opponent"]
+    away_team = selected_team if match_data["match_venue"] == "(A)" else match_data["match_opponent"]
     STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
-    st.image(os.path.join(STATIC_DIR, "logo-anderlecht.png"), width=100)
-    st.image(os.path.join(STATIC_DIR, "logo-gent.png"), width=100)
+    home_logo = os.path.join(STATIC_DIR, f"logo-{home_team.lower()}.png")
+    away_logo = os.path.join(STATIC_DIR, f"logo-{away_team.lower()}.png")
+    st.write(home_team)
+    st.image(home_logo, width=100)
+    st.write(away_team)
+    st.image(away_logo, width=100)
 
-    # Get events
+    # Get summary events
+    events_wrap_div = soup.find("div", {"id": "events_wrap"})
     events_list = []
     summary_events = events_wrap_div.find_all("div", {"class": "event"})
     for event in summary_events:
@@ -153,6 +152,10 @@ if selected_team and selected_match:
             })
 
     events_df = pd.DataFrame(events_list)
+    st.subheader("Summary events")
     st.write(events_df)
 
     # GET SHOTS DATA
+    shots_df = pd.read_html(match_report_link, attrs={"id": "shots_all"}, header=1)[0]
+    st.subheader("Shots")
+    st.write(shots_df)
