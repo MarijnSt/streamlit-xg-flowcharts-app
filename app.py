@@ -51,14 +51,15 @@ def get_matches_data(team_url, today):
         # Get match date
         date_element = row.find("th", {"data-stat": "date"})
         match_date_str = date_element.get("csk")
-        match_date = datetime.strptime(match_date_str, '%Y%m%d').date()
-        
+        match_date = datetime.strptime(match_date_str, '%Y%m%d').date().strftime('%Y-%m-%d')
+        parsed_date = datetime.strptime(match_date, '%Y-%m-%d').date()
+
         # Get competition
         competition_element = row.find("td", {"data-stat": "comp"})
         competition = competition_element.text.strip()
 
         # Only add matches from the Pro League that have been played
-        if (match_date < today and competition == "Pro League A"):
+        if (parsed_date < today and competition == "Pro League A"):
             # Get match opponent
             match_opponent = row.find("td", {"data-stat": "opponent"}).text.strip()
 
@@ -222,7 +223,7 @@ if selected_team and selected_match:
     ax.text(0.65, 1.15, away_team, color=away_color, fontsize=16, ha='left', transform=ax.transAxes)
 
     # game information
-    ax.text(0.5, 1.10, match_data["match_date"].strftime("%d-%m-%Y"), alpha=0.6, fontsize=9, ha="center", transform=ax.transAxes)
+    ax.text(0.5, 1.10, datetime.strptime(match_data["match_date"], '%Y-%m-%d').strftime("%d-%m-%Y"), alpha=0.6, fontsize=9, ha="center", transform=ax.transAxes)
     ax.text(0.5, 1.06, "Jupiler Pro League", alpha=0.6, fontsize=9, ha="center", transform=ax.transAxes)
 
     # logo's
@@ -258,7 +259,7 @@ if selected_team and selected_match:
                 text = row["player_name"]
                 if row["event_type"] == "Own goal":
                     text += " (OG)"
-                    ax.annotate(text, (row["event_minute"], row["cumulative_xg"]), color=team_color, alpha=alpha_value, fontsize=8, ha="right", xytext=(-5, 7.5), textcoords="offset points")
+                ax.annotate(text, (row["event_minute"], row["cumulative_xg"]), color=team_color, alpha=alpha_value, fontsize=8, ha="right", xytext=(-5, 7.5), textcoords="offset points")
             # red cards
             if row["event_type"] == "Red card":
                 ax.axvline(x = row["event_minute"], color = "red", linestyle = "--", linewidth = 1.1, alpha = 0.2)
