@@ -158,10 +158,42 @@ if selected_team and selected_match:
     # GET SHOTS DATA
     all_shots_df = pd.read_html(match_report_link, attrs={"id": "shots_all"}, header=1)[0]
     # Filter out spacer rows
-    shots_df = all_shots_df.loc[all_shots_df["Minute"].notna(), ["Minute", "Player", "Squad", "xG", "Outcome"]]
+    shots_df = all_shots_df.loc[all_shots_df["Minute"].notna(), ["Minute", "Player", "Squad", "xG", "Outcome"]].reset_index(drop=True)
     # Rename columns for consistency
     shots_df.columns = ["event_minute", "player_name", "team_name", "xg", "outcome"]
     # Handle extra time shots
     shots_df["event_minute"] = shots_df["event_minute"].apply(lambda x: int(x.split("+")[0]) if "+" in x else int(x))
     st.subheader("Shots")
     st.write(shots_df)
+
+    def create_team_shots_df(shots_df, team_name):
+        # Filter for team, sort by minute and reset index
+        df = shots_df.loc[shots_df["team_name"] == team_name].sort_values(by="event_minute").reset_index(drop=True)
+        # Add a column for the cumulative xG
+        df["cumulative_xg"] = df["xg"].cumsum()
+        # Add start and end records to fill in the gaps in the chart
+        start_record = pd.DataFrame({
+            "event_minute": [0], 
+            "player_name": [None], 
+            "team_name": [team_name], 
+            "xg": [0], 
+            "outcome": [None], 
+            "cumulative_xg": [0]
+        })
+        end_record = pd.DataFrame({
+            "event_minute": [90], 
+            "player_name": [None], 
+            "team_name": [team_name], 
+            "xg": [0], 
+            "outcome": [None], 
+            "cumulative_xg": [df["cumulative_xg"].max()]
+        })
+        return pd.concat([start_record, df, end_record], ignore_index=True)
+
+    # Create dataframes for home and away teams
+    home_shots_df = create_team_shots_df(shots_df, home_team)
+    away_shots_df = create_team_shots_df(shots_df, away_team)
+    st.subheader("Home shots")
+    st.write(home_shots_df)
+    st.subheader("Away shots")
+    st.write(away_shots_df)
