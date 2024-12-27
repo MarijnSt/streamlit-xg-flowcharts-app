@@ -143,12 +143,12 @@ if selected_team and selected_match:
         if event_type:
             event_minute = event.find("div").text.strip().split("’")[0].split("+")[0]
             player_name = event.find("a").text.strip()
-            team = "Home" if event.get("class")[1] == "a" else "Away"
+            team = home_team if event.get("class")[1] == "a" else away_team
             events_list.append({
                 "event_minute": event_minute,
                 "event_type": event_type,
                 "player_name": player_name,
-                "team": team
+                "team_name": team
             })
 
     events_df = pd.DataFrame(events_list)
@@ -156,6 +156,12 @@ if selected_team and selected_match:
     st.write(events_df)
 
     # GET SHOTS DATA
-    shots_df = pd.read_html(match_report_link, attrs={"id": "shots_all"}, header=1)[0]
+    all_shots_df = pd.read_html(match_report_link, attrs={"id": "shots_all"}, header=1)[0]
+    # Filter out spacer rows
+    shots_df = all_shots_df.loc[all_shots_df["Minute"].notna(), ["Minute", "Player", "Squad", "xG", "Outcome"]]
+    # Rename columns for consistency
+    shots_df.columns = ["event_minute", "player_name", "team_name", "xg", "outcome"]
+    # Handle extra time shots
+    shots_df["event_minute"] = shots_df["event_minute"].apply(lambda x: int(x.split("+")[0]) if "+" in x else int(x))
     st.subheader("Shots")
     st.write(shots_df)
