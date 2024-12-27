@@ -128,6 +128,9 @@ if selected_team and selected_match:
         # check for own goal
         if "own goal" in event.text.lower():
             event_type = "Own goal"
+        # check for penalty goal
+        if "penalty kick" in event.text.lower():
+            event_type = "Goal"
         # check for red card
         if "red card" in event.text.lower() or "second yellow card" in event.text.lower():
             event_type = "Red card"
