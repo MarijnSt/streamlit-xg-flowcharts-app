@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
+import os
 
 st.title("Belgian Pro League xG Flowcharts")
 
@@ -108,13 +109,18 @@ if selected_team and selected_match:
 
     # GET SUMMARY DATA
     events_wrap_div = soup.find("div", {"id": "events_wrap"})
-    #st.write(events_wrap_div)
+
     # Get team logos
     team_logos = events_wrap_div.find("div").find("div").find_all("img")
     home_logo = team_logos[0]["src"]
     away_logo = team_logos[1]["src"]
     st.write(home_logo)
     st.write(away_logo)
+    st.image(home_logo, width=100)
+    st.image(away_logo, width=100)
+    STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
+    st.image(os.path.join(STATIC_DIR, "logo-anderlecht.png"), width=100)
+    st.image(os.path.join(STATIC_DIR, "logo-gent.png"), width=100)
 
     # Get events
     events_list = []
