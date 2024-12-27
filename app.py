@@ -7,6 +7,7 @@ import os
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+from team_colors import get_team_colors
 
 st.title("Belgian Pro League xG Flowcharts")
 
@@ -119,7 +120,7 @@ if selected_team and selected_match:
     # Rename columns for consistency
     shots_df.columns = ["event_minute", "player_name", "team_name", "xg", "outcome"]
     # Handle extra time shots
-    shots_df["event_minute"] = shots_df["event_minute"].apply(lambda x: int(x.split("+")[0]) if "+" in x else int(x))
+    shots_df["event_minute"] = shots_df["event_minute"].apply(lambda x: int(float(x.split("+")[0]) if "+" in str(x) else int(float(x))))
 
     def create_team_shots_df(shots_df, team_name):
         # Filter for team, sort by minute and reset index
@@ -205,9 +206,10 @@ if selected_team and selected_match:
         'grid.color': grey_color,
     })
 
-    # team data
-    home_color = "#4c2484"
-    away_color = "#004794"
+    # team colors
+    team_colors_df = get_team_colors()
+    home_color = team_colors_df.loc[team_colors_df["team_name"] == home_team, "team_color"].iloc[0]
+    away_color = team_colors_df.loc[team_colors_df["team_name"] == away_team, "team_color"].iloc[0]
 
     # plt customizations
     plt.xticks([0, 15, 30, 45, 60, 75, 90])
@@ -227,11 +229,11 @@ if selected_team and selected_match:
     ax.text(0.5, 1.06, "Jupiler Pro League", alpha=0.6, fontsize=9, ha="center", transform=ax.transAxes)
 
     # logo's
-    home_logo = mpimg.imread(f"static/logo-{home_team.lower()}.png")
+    home_logo = mpimg.imread(f"static/logo-{home_team.lower().replace(' ', '-')}.png")
     home_imagebox = OffsetImage(home_logo, zoom=0.45)
     home_ab = AnnotationBbox(home_imagebox, (0.05, 1.15), xycoords='axes fraction', frameon=False)
     ax.add_artist(home_ab)
-    away_logo = mpimg.imread(f"static/logo-{away_team.lower()}.png")
+    away_logo = mpimg.imread(f"static/logo-{away_team.lower().replace(' ', '-')}.png")
     away_imagebox = OffsetImage(away_logo, zoom=0.45)
     away_ab = AnnotationBbox(away_imagebox, (0.95, 1.15), xycoords='axes fraction', frameon=False)
     ax.add_artist(away_ab)
