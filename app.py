@@ -8,13 +8,17 @@ import matplotlib.image as mpimg
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 from team_colors import get_team_colors
 
-st.title("Belgian Pro League xG Flowcharts")
+# CONSTANTS
+FBREF_BASE_URL = "https://fbref.com"
+COMPETITION_URL = "https://fbref.com/en/comps/37/Belgian-Pro-League-Stats"
+VIZ_BACKGROUND_COLOR = "#f2f4ee"
+VIZ_BLACK_COLOR = "#0a0c08"
+VIZ_GREY_COLOR = "#7D7C84"
 
-# GET TEAMS
+# CACHED FUNCTIONS
 @st.cache_data
 def get_teams_df():
-    competition_url = "https://fbref.com/en/comps/37/Belgian-Pro-League-Stats"
-    response = requests.get(competition_url)
+    response = requests.get(COMPETITION_URL)
     soup = BeautifulSoup(response.text, 'html.parser')
 
     table = soup.find('table', {'id': 'results2024-2025371_overall'})
@@ -26,20 +30,12 @@ def get_teams_df():
             team_url = team_cell.find("a")["href"]
             teams_data.append({
                 "team_name": team_name, 
-                "team_url": f"https://fbref.com/{team_url}", 
+                "team_url": f"{FBREF_BASE_URL}/{team_url}", 
             })
 
     teams_df = pd.DataFrame(teams_data)
     return teams_df
 
-teams_df = get_teams_df()
-selected_team = st.selectbox(
-    "Select a team", 
-    sorted(teams_df["team_name"].tolist()),
-    index=None
-)
-
-# GET MATCHES FOR SELECTED TEAM
 @st.cache_data
 def get_matches_df(team_url, today):
     response = requests.get(team_url)
@@ -74,7 +70,7 @@ def get_matches_df(team_url, today):
 
             # Get link to match report
             match_report_link_href = row.find("td", {"data-stat": "match_report"}).find("a")["href"]
-            match_report_link = f"https://fbref.com{match_report_link_href}"
+            match_report_link = f"{FBREF_BASE_URL}{match_report_link_href}"
 
             # Set label for selectbox
             match_label = f"{match_date} {match_opponent} {match_venue} {score}"
@@ -90,17 +86,6 @@ def get_matches_df(team_url, today):
 
     matches_df = pd.DataFrame(matches_data)
     return matches_df
-
-if selected_team:
-    today = datetime.now().date()
-    team_url = teams_df.loc[teams_df["team_name"] == selected_team]["team_url"].values[0]
-    matches_df = get_matches_df(team_url, today)
-    
-    selected_match = st.selectbox(
-        "Select a match", 
-        matches_df['match_label'].tolist(),
-        index=None
-    )
 
 @st.cache_data
 def get_shots_df(match_report_link):
@@ -181,20 +166,17 @@ def get_events_df(match_report_link, home_team, away_team):
 
 @st.cache_data
 def create_match_visualisation(home_team, away_team, match_data, home_shots_df, away_shots_df, events_df):
-    background_color = "#f2f4ee"
-    black_color = "#0a0c08"
-    grey_color = "#7D7C84"
     fig, ax = plt.subplots(figsize = (10, 5))
-    fig.set_facecolor(background_color)
-    ax.set_facecolor(background_color)
+    fig.set_facecolor(VIZ_BACKGROUND_COLOR)
+    ax.set_facecolor(VIZ_BACKGROUND_COLOR)
     plt.rcParams['font.family'] = 'Gill Sans'
     plt.rcParams.update({
-        'text.color': black_color,
-        'axes.labelcolor': grey_color,
-        'axes.edgecolor': grey_color,
-        'xtick.color': grey_color,
-        'ytick.color': grey_color,
-        'grid.color': grey_color,
+        'text.color': VIZ_BLACK_COLOR,
+        'axes.labelcolor': VIZ_GREY_COLOR,
+        'axes.edgecolor': VIZ_GREY_COLOR,
+        'xtick.color': VIZ_GREY_COLOR,
+        'ytick.color': VIZ_GREY_COLOR,
+        'grid.color': VIZ_GREY_COLOR,
     })
 
     # plt customizations
@@ -284,6 +266,27 @@ def create_match_visualisation(home_team, away_team, match_data, home_shots_df, 
         add_event_markers(events_df, away_team, away_color)
 
     return fig
+
+# STREAMLIT APP
+st.title("Belgian Pro League xG Flowcharts")
+
+teams_df = get_teams_df()
+selected_team = st.selectbox(
+    "Select a team", 
+    sorted(teams_df["team_name"].tolist()),
+    index=None
+)
+
+if selected_team:
+    today = datetime.now().date()
+    team_url = teams_df.loc[teams_df["team_name"] == selected_team]["team_url"].values[0]
+    matches_df = get_matches_df(team_url, today)
+    
+    selected_match = st.selectbox(
+        "Select a match", 
+        matches_df['match_label'].tolist(),
+        index=None
+    )
 
 if selected_team and selected_match:
     match_data = matches_df.loc[matches_df["match_label"] == selected_match].iloc[0]
