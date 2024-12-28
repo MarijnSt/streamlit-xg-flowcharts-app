@@ -179,25 +179,8 @@ def get_events_df(match_report_link, home_team, away_team):
 
     return pd.DataFrame(events_list)
 
-if selected_team and selected_match:
-    match_data = matches_df.loc[matches_df["match_label"] == selected_match].iloc[0]
-    match_report_link = match_data["match_report_link"]
-
-    # Get team names
-    home_team = selected_team if match_data["match_venue"] == "(H)" else match_data["match_opponent"]
-    away_team = selected_team if match_data["match_venue"] == "(A)" else match_data["match_opponent"]
-
-    # Get shots dataframe
-    shots_df = get_shots_df(match_report_link)
-
-    # Create dataframes for home and away teams xg steps on flowchart
-    home_shots_df = create_team_shots_df(shots_df, home_team)
-    away_shots_df = create_team_shots_df(shots_df, away_team)
-
-    # Create events dataframe for event markers on flowchart
-    events_df = get_events_df(match_report_link, home_team, away_team)
-
-    # init flowchart
+@st.cache_data
+def create_match_visualisation(home_team, away_team, match_data, home_shots_df, away_shots_df, events_df):
     background_color = "#f2f4ee"
     black_color = "#0a0c08"
     grey_color = "#7D7C84"
@@ -299,5 +282,29 @@ if selected_team and selected_match:
     if not events_df.empty:
         add_event_markers(events_df, home_team, home_color)
         add_event_markers(events_df, away_team, away_color)
-    # show plot
+
+    return fig
+
+if selected_team and selected_match:
+    match_data = matches_df.loc[matches_df["match_label"] == selected_match].iloc[0]
+    match_report_link = match_data["match_report_link"]
+
+    # Get team names
+    home_team = selected_team if match_data["match_venue"] == "(H)" else match_data["match_opponent"]
+    away_team = selected_team if match_data["match_venue"] == "(A)" else match_data["match_opponent"]
+
+    # Get shots dataframe
+    shots_df = get_shots_df(match_report_link)
+
+    # Create dataframes for home and away teams xg steps on flowchart
+    home_shots_df = create_team_shots_df(shots_df, home_team)
+    away_shots_df = create_team_shots_df(shots_df, away_team)
+
+    # Create events dataframe for event markers on flowchart
+    events_df = get_events_df(match_report_link, home_team, away_team)
+
+    # Create visualisation
+    fig = create_match_visualisation(home_team, away_team, match_data, home_shots_df, away_shots_df, events_df)
+
+    # Show plot
     st.pyplot(fig)
