@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 from team_colors import get_team_colors
+from matplotlib import font_manager
 
 # CONSTANTS
 FBREF_BASE_URL = "https://fbref.com"
@@ -169,7 +170,9 @@ def create_match_visualisation(home_team, away_team, match_data, home_shots_df, 
     fig, ax = plt.subplots(figsize = (10, 5))
     fig.set_facecolor(VIZ_BACKGROUND_COLOR)
     ax.set_facecolor(VIZ_BACKGROUND_COLOR)
-    plt.rcParams['font.family'] = 'Gill Sans'
+    font_manager.fontManager.addfont('static/GillSans.ttf')
+    prop = font_manager.FontProperties(fname='static/GillSans.ttf')
+    plt.rcParams['font.family'] = prop.get_name()
     plt.rcParams.update({
         'text.color': VIZ_BLACK_COLOR,
         'axes.labelcolor': VIZ_GREY_COLOR,
