@@ -251,27 +251,41 @@ if selected_team and selected_match:
     def add_event_markers(df, team_name, team_color):
         team_events_df = df.loc[df["team_name"] == team_name]
         for _, row in team_events_df.iterrows():
-            # goals
-            if row["event_type"] == "Goal" or row["event_type"] == "Own goal":
-                # mark goal on xG chart
-                ax.scatter(x = row["event_minute"], y = row["cumulative_xg"], color = team_color, marker = "o")
-                # annotate goal
-                alpha_value = 1 if row["event_type"] == "Goal" else 0.5
-                text = row["player_name"]
-                if row["event_type"] == "Own goal":
-                    text += " (OG)"
-                ax.annotate(text, (row["event_minute"], row["cumulative_xg"]), color=team_color, alpha=alpha_value, fontsize=8, ha="right", xytext=(-5, 7.5), textcoords="offset points")
-            # red cards
-            if row["event_type"] == "Red card":
-                ax.axvline(x = row["event_minute"], color = "red", linestyle = "--", linewidth = 1.1, alpha = 0.2)
-                ax.text(
-                    x=row["event_minute"] + 1, y= 0.63,
-                    s=row["player_name"],
-                    color="red",
-                    fontsize=9,
-                    ha='left',
-                    alpha= 0.5
-                )
+            # set variables
+            match row["event_type"]:
+                case "Goal":
+                    color = team_color
+                    text = row["player_name"]
+                    marker = "o"
+                case "Own goal":
+                    color = team_color
+                    text = row["player_name"] + " (OG)"
+                    marker = "o"
+                case "Red card":
+                    color = "red"
+                    text = row["player_name"]
+                    marker = "x"
+
+            # add event marker
+            ax.scatter(
+                x = row["event_minute"],
+                y = row["cumulative_xg"],
+                color = color,
+                marker = marker,
+                alpha = 0.5
+            )
+
+            # annotate event
+            ax.annotate(
+                text = text,
+                xy = (row["event_minute"], row["cumulative_xg"]),
+                color = color,
+                alpha = 1,
+                fontsize = 8,
+                ha = "right",
+                xytext = (-5, 7.5),
+                textcoords = "offset points"
+            )
 
     if not events_df.empty:
         add_event_markers(events_df, home_team, home_color)
