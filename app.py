@@ -9,6 +9,12 @@ from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 from team_colors import get_team_colors
 from matplotlib import font_manager
 
+# PAGE CONFIG
+st.set_page_config(
+    page_title="Belgian Pro League xG",
+    page_icon="⚽️",
+)
+
 # CONSTANTS
 FBREF_BASE_URL = "https://fbref.com"
 COMPETITION_URL = "https://fbref.com/en/comps/37/Belgian-Pro-League-Stats"
