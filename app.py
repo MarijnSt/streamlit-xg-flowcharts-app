@@ -3,7 +3,6 @@ import streamlit as st
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
-import os
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
