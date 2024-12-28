@@ -10,9 +10,9 @@ from team_colors import get_team_colors
 
 st.title("Belgian Pro League xG Flowcharts")
 
-# GET TEAM DATA
+# GET TEAMS
 @st.cache_data
-def get_team_data():
+def get_teams_df():
     competition_url = "https://fbref.com/en/comps/37/Belgian-Pro-League-Stats"
     response = requests.get(competition_url)
     soup = BeautifulSoup(response.text, 'html.parser')
@@ -32,16 +32,16 @@ def get_team_data():
     teams_df = pd.DataFrame(teams_data)
     return teams_df
 
-teams_df = get_team_data()
+teams_df = get_teams_df()
 selected_team = st.selectbox(
     "Select a team", 
     sorted(teams_df["team_name"].tolist()),
     index=None
 )
 
-# GET MATCHES DATA FOR SELECTED TEAM
+# GET MATCHES FOR SELECTED TEAM
 @st.cache_data
-def get_matches_data(team_url, today):
+def get_matches_df(team_url, today):
     response = requests.get(team_url)
     soup = BeautifulSoup(response.text, 'html.parser')
     table = soup.find('table', {'id': 'matchlogs_for'})
@@ -94,7 +94,7 @@ def get_matches_data(team_url, today):
 if selected_team:
     today = datetime.now().date()
     team_url = teams_df.loc[teams_df["team_name"] == selected_team]["team_url"].values[0]
-    matches_df = get_matches_data(team_url, today)
+    matches_df = get_matches_df(team_url, today)
     
     selected_match = st.selectbox(
         "Select a match", 
@@ -102,17 +102,8 @@ if selected_team:
         index=None
     )
 
-if selected_team and selected_match:
-    match_data = matches_df.loc[matches_df["match_label"] == selected_match].iloc[0]
-    match_report_link = match_data["match_report_link"]
-    response = requests.get(match_report_link)
-    soup = BeautifulSoup(response.text, 'html.parser')
-
-    # Get team info
-    home_team = selected_team if match_data["match_venue"] == "(H)" else match_data["match_opponent"]
-    away_team = selected_team if match_data["match_venue"] == "(A)" else match_data["match_opponent"]
-
-    # GET SHOTS DATA
+@st.cache_data
+def get_shots_df(match_report_link):
     all_shots_df = pd.read_html(match_report_link, attrs={"id": "shots_all"}, header=1)[0]
     # Filter out spacer rows
     shots_df = all_shots_df.loc[all_shots_df["Minute"].notna(), ["Minute", "Player", "Squad", "xG", "Outcome"]].reset_index(drop=True)
@@ -120,39 +111,41 @@ if selected_team and selected_match:
     shots_df.columns = ["event_minute", "player_name", "team_name", "xg", "outcome"]
     # Handle extra time shots
     shots_df["event_minute"] = shots_df["event_minute"].apply(lambda x: int(float(x.split("+")[0]) if "+" in str(x) else int(float(x))))
+    return shots_df
 
-    def create_team_shots_df(shots_df, team_name):
-        # Filter for team, sort by minute and reset index
-        df = shots_df.loc[shots_df["team_name"] == team_name].sort_values(by="event_minute").reset_index(drop=True)
-        # Add a column for the cumulative xG
-        df["cumulative_xg"] = df["xg"].cumsum()
-        # Add start and end records to fill in the gaps in the chart
-        start_record = pd.DataFrame({
-            "event_minute": [0], 
-            "player_name": [None], 
-            "team_name": [team_name], 
-            "xg": [0], 
-            "outcome": [None], 
-            "cumulative_xg": [0]
-        })
-        end_record = pd.DataFrame({
-            "event_minute": [90], 
-            "player_name": [None], 
-            "team_name": [team_name], 
-            "xg": [0], 
-            "outcome": [None], 
-            "cumulative_xg": [df["cumulative_xg"].max()]
-        })
-        return pd.concat([start_record, df, end_record], ignore_index=True)
+@st.cache_data
+def create_team_shots_df(shots_df, team_name):
+    # Filter for team, sort by minute and reset index
+    df = shots_df.loc[shots_df["team_name"] == team_name].sort_values(by="event_minute").reset_index(drop=True)
+    # Add a column for the cumulative xG
+    df["cumulative_xg"] = df["xg"].cumsum()
+    # Add start and end records to fill in the gaps in the chart
+    start_record = pd.DataFrame({
+        "event_minute": [0], 
+        "player_name": [None], 
+        "team_name": [team_name], 
+        "xg": [0], 
+        "outcome": [None], 
+        "cumulative_xg": [0]
+    })
+    end_record = pd.DataFrame({
+        "event_minute": [90], 
+        "player_name": [None], 
+        "team_name": [team_name], 
+        "xg": [0], 
+        "outcome": [None], 
+        "cumulative_xg": [df["cumulative_xg"].max()]
+    })
+    return pd.concat([start_record, df, end_record], ignore_index=True)
 
-    # Create dataframes for home and away teams
-    home_shots_df = create_team_shots_df(shots_df, home_team)
-    away_shots_df = create_team_shots_df(shots_df, away_team)
-
-    # GET SUMMARY EVENTS
+@st.cache_data
+def get_events_df(match_report_link, home_team, away_team):
+    response = requests.get(match_report_link)
+    soup = BeautifulSoup(response.text, 'html.parser')
     events_wrap_div = soup.find("div", {"id": "events_wrap"})
     events_list = []
     summary_events = events_wrap_div.find_all("div", {"class": "event"})
+
     for event in summary_events:
         # init event type
         event_type = None
@@ -184,14 +177,30 @@ if selected_team and selected_match:
                 "cumulative_xg": cumulative_xg
             })
 
-    events_df = pd.DataFrame(events_list)
+    return pd.DataFrame(events_list)
 
-    # CREATE FLOWCHART
+if selected_team and selected_match:
+    match_data = matches_df.loc[matches_df["match_label"] == selected_match].iloc[0]
+    match_report_link = match_data["match_report_link"]
+
+    # Get team names
+    home_team = selected_team if match_data["match_venue"] == "(H)" else match_data["match_opponent"]
+    away_team = selected_team if match_data["match_venue"] == "(A)" else match_data["match_opponent"]
+
+    # Get shots dataframe
+    shots_df = get_shots_df(match_report_link)
+
+    # Create dataframes for home and away teams xg steps on flowchart
+    home_shots_df = create_team_shots_df(shots_df, home_team)
+    away_shots_df = create_team_shots_df(shots_df, away_team)
+
+    # Create events dataframe for event markers on flowchart
+    events_df = get_events_df(match_report_link, home_team, away_team)
+
+    # init flowchart
     background_color = "#f2f4ee"
     black_color = "#0a0c08"
     grey_color = "#7D7C84"
-
-    # init flowchart
     fig, ax = plt.subplots(figsize = (10, 5))
     fig.set_facecolor(background_color)
     ax.set_facecolor(background_color)
@@ -205,11 +214,6 @@ if selected_team and selected_match:
         'grid.color': grey_color,
     })
 
-    # team colors
-    team_colors_df = get_team_colors()
-    home_color = team_colors_df.loc[team_colors_df["team_name"] == home_team, "team_color"].iloc[0]
-    away_color = team_colors_df.loc[team_colors_df["team_name"] == away_team, "team_color"].iloc[0]
-
     # plt customizations
     plt.xticks([0, 15, 30, 45, 60, 75, 90])
     plt.xlabel("Minute")
@@ -218,12 +222,17 @@ if selected_team and selected_match:
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
 
-    # display the team names and score
+    # team colors
+    team_colors_df = get_team_colors()
+    home_color = team_colors_df.loc[team_colors_df["team_name"] == home_team, "team_color"].iloc[0]
+    away_color = team_colors_df.loc[team_colors_df["team_name"] == away_team, "team_color"].iloc[0]
+
+    # plot team names and score
     ax.text(0.35, 1.15, home_team, color=home_color, fontsize=16, ha='right', transform=ax.transAxes)
     ax.text(0.5, 1.15, match_data["score"], fontsize=16, ha='center', transform=ax.transAxes)
     ax.text(0.65, 1.15, away_team, color=away_color, fontsize=16, ha='left', transform=ax.transAxes)
 
-    # game information
+    # plot game information
     ax.text(0.5, 1.10, datetime.strptime(match_data["match_date"], '%Y-%m-%d').strftime("%d-%m-%Y"), alpha=0.6, fontsize=9, ha="center", transform=ax.transAxes)
     ax.text(0.5, 1.06, "Jupiler Pro League", alpha=0.6, fontsize=9, ha="center", transform=ax.transAxes)
 
@@ -237,7 +246,7 @@ if selected_team and selected_match:
     away_ab = AnnotationBbox(away_imagebox, (0.95, 1.15), xycoords='axes fraction', frameon=False)
     ax.add_artist(away_ab)
 
-    # xG for teams
+    # plot xG for teams
     home_total_xg = home_shots_df["cumulative_xg"].max()
     away_total_xg = away_shots_df["cumulative_xg"].max()
     ax.text(0.35, 1.10, f"{home_total_xg:.2f} xG", color=home_color, alpha=0.6, fontsize=9, ha='right', transform=ax.transAxes)
@@ -247,7 +256,7 @@ if selected_team and selected_match:
     ax.step(x = home_shots_df["event_minute"], y = home_shots_df["cumulative_xg"], where="post", color=home_color)
     ax.step(x = away_shots_df["event_minute"], y = away_shots_df["cumulative_xg"], where="post", color=away_color)
 
-    # add event markers
+    # plot event markers
     def add_event_markers(df, team_name, team_color):
         team_events_df = df.loc[df["team_name"] == team_name]
         for _, row in team_events_df.iterrows():
