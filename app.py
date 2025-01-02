@@ -1,3 +1,4 @@
+import matplotlib.colors
 from datetime import datetime
 import streamlit as st
 import pandas as pd
@@ -75,6 +76,10 @@ def get_matches_df(team_url, today):
             goals_against = row.find("td", {"data-stat": "goals_against"}).text.strip()
             score = f"{goals_for} - {goals_against}" if match_venue == "(H)" else f"{goals_against} - {goals_for}"
 
+            # Get xG for and against
+            xg_for = row.find("td", {"data-stat": "xg_for"}).text.strip()
+            xg_against = row.find("td", {"data-stat": "xg_against"}).text.strip()
+
             # Get link to match report
             match_report_link_href = row.find("td", {"data-stat": "match_report"}).find("a")["href"]
             match_report_link = f"{FBREF_BASE_URL}{match_report_link_href}"
@@ -87,6 +92,8 @@ def get_matches_df(team_url, today):
                 "match_opponent": match_opponent,
                 "match_venue": match_venue,
                 "score": score,
+                "xg_for": float(xg_for),
+                "xg_against": float(xg_against),
                 "match_label": match_label,
                 "match_report_link": match_report_link
             })
@@ -172,7 +179,7 @@ def get_events_df(match_report_link, home_team, away_team):
     return pd.DataFrame(events_list)
 
 @st.cache_data
-def create_match_visualisation(home_team, away_team, match_data, home_shots_df, away_shots_df, events_df):
+def init_visualisation():
     fig, ax = plt.subplots(figsize = (10, 5))
     fig.set_facecolor(VIZ_BACKGROUND_COLOR)
     ax.set_facecolor(VIZ_BACKGROUND_COLOR)
@@ -187,14 +194,59 @@ def create_match_visualisation(home_team, away_team, match_data, home_shots_df, 
         'ytick.color': VIZ_GREY_COLOR,
         'grid.color': VIZ_GREY_COLOR,
     })
+    plt.grid(True, alpha=0.2)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    return fig, ax
+
+@st.cache_data
+def create_trendline(home_team, match_data):
+    fig, ax = init_visualisation()
+
+    # plt customizations
+    ax.spines['left'].set_alpha(0.3)
+    ax.tick_params(axis='y', colors=matplotlib.colors.to_rgba(VIZ_GREY_COLOR, alpha=0.3))
+    plt.xticks([])
+    ax.spines['bottom'].set_visible(False)
+
+    # team colors
+    team_colors_df = get_team_colors()
+    team_color = team_colors_df.loc[team_colors_df["team_name"] == home_team, "team_color"].iloc[0]
+    against_color = matplotlib.colors.to_rgba(team_color, alpha=0.25)
+
+    # add logo
+    home_logo = mpimg.imread(f"static/logo-{home_team.lower().replace(' ', '-')}.png")
+    home_imagebox = OffsetImage(home_logo, zoom=0.45)
+    home_ab = AnnotationBbox(home_imagebox, (0.95, 1.15), xycoords='axes fraction', frameon=False)
+    ax.add_artist(home_ab)
+
+    # add title
+    title = f"{home_team} xG Trendline"
+    subtitle = "Jupiler Pro League 2024-2025"
+    ax.text(0.5, 1.15, title, color=team_color, fontsize=16, ha='center', transform=ax.transAxes)
+    ax.text(0.5, 1.10, subtitle, color=team_color, fontsize=12, ha='center', transform=ax.transAxes)
+
+    # plot trendline
+    plt.plot(match_data["xg_for"], label="xG for", color=team_color)
+    plt.plot(match_data["xg_against"], label="xG against", color=against_color, alpha=0.2)
+
+    # scatter xG values for and against for each game
+    plt.scatter(y=match_data["xg_for"], x=match_data.index, label="xG for", s=20, facecolors=VIZ_BACKGROUND_COLOR, edgecolors=team_color, zorder=10)
+    plt.scatter(y=match_data["xg_against"], x=match_data.index, label="xG against", s=20, facecolors=VIZ_BACKGROUND_COLOR, edgecolors=against_color, zorder=10)
+
+    # add text under x-axis
+    plt.text(0.45, -0.1, "xG for", color=team_color, fontsize=12, ha='center', transform=ax.transAxes)
+    plt.text(0.55, -0.1, "xG against", color=against_color, fontsize=12, ha='center', transform=ax.transAxes)    
+    return fig
+
+@st.cache_data
+def create_match_visualisation(home_team, away_team, match_data, home_shots_df, away_shots_df, events_df):
+    fig, ax = init_visualisation()
 
     # plt customizations
     plt.xticks([0, 15, 30, 45, 60, 75, 90])
     plt.xlabel("Minute")
     plt.ylabel("Cumulative xG")
-    plt.grid(True, alpha=0.2)
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
 
     # team colors
     team_colors_df = get_team_colors()
@@ -290,6 +342,10 @@ if selected_team:
     today = datetime.now().date()
     team_url = teams_df.loc[teams_df["team_name"] == selected_team]["team_url"].values[0]
     matches_df = get_matches_df(team_url, today)
+
+    # plot trendline
+    fig = create_trendline(selected_team, matches_df)
+    st.pyplot(fig)
     
     selected_match = st.selectbox(
         "Select a match", 
