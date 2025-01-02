@@ -226,6 +226,9 @@ def create_trendline(home_team, match_data):
     plt.scatter(y=match_data["xg_for"], x=match_data.index, label="xG for", s=20, facecolors=VIZ_BACKGROUND_COLOR, edgecolors=team_color, zorder=10)
     plt.scatter(y=match_data["xg_against"], x=match_data.index, label="xG against", s=20, facecolors=VIZ_BACKGROUND_COLOR, edgecolors=against_color, zorder=10)
 
+    # add text under x-axis
+    plt.text(0.05, -0.15, "xG for", color=team_color, fontsize=12, ha='left', transform=ax.transAxes)
+    plt.text(0.95, -0.15, "xG against", color=against_color, fontsize=12, ha='right', transform=ax.transAxes)    
     return fig
 
 @st.cache_data
@@ -331,7 +334,6 @@ if selected_team:
     today = datetime.now().date()
     team_url = teams_df.loc[teams_df["team_name"] == selected_team]["team_url"].values[0]
     matches_df = get_matches_df(team_url, today)
-    st.write(matches_df)
 
     # plot trendline
     fig = create_trendline(selected_team, matches_df)
