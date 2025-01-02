@@ -329,7 +329,7 @@ def create_match_visualisation(home_team, away_team, match_data, home_shots_df, 
     return fig
 
 # STREAMLIT APP
-st.title("Belgian Pro League xG Flowcharts")
+st.title("Belgian Pro League xG")
 
 teams_df = get_teams_df()
 selected_team = st.selectbox(
