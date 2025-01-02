@@ -204,13 +204,21 @@ def create_trendline(home_team, match_data):
     fig, ax = init_visualisation()
 
     # plt customizations
-    plt.xlabel("Games")
-    plt.ylabel("xG")
+    ax.spines['left'].set_alpha(0.3)
+    ax.tick_params(axis='y', colors=matplotlib.colors.to_rgba(VIZ_GREY_COLOR, alpha=0.3))
+    plt.xticks([])
+    ax.spines['bottom'].set_visible(False)
 
     # team colors
     team_colors_df = get_team_colors()
     team_color = team_colors_df.loc[team_colors_df["team_name"] == home_team, "team_color"].iloc[0]
     against_color = matplotlib.colors.to_rgba(team_color, alpha=0.25)
+
+    # add logo
+    home_logo = mpimg.imread(f"static/logo-{home_team.lower().replace(' ', '-')}.png")
+    home_imagebox = OffsetImage(home_logo, zoom=0.45)
+    home_ab = AnnotationBbox(home_imagebox, (0.95, 1.15), xycoords='axes fraction', frameon=False)
+    ax.add_artist(home_ab)
 
     # add title
     title = f"{home_team} xG Trendline"
@@ -227,8 +235,8 @@ def create_trendline(home_team, match_data):
     plt.scatter(y=match_data["xg_against"], x=match_data.index, label="xG against", s=20, facecolors=VIZ_BACKGROUND_COLOR, edgecolors=against_color, zorder=10)
 
     # add text under x-axis
-    plt.text(0.05, -0.15, "xG for", color=team_color, fontsize=12, ha='left', transform=ax.transAxes)
-    plt.text(0.95, -0.15, "xG against", color=against_color, fontsize=12, ha='right', transform=ax.transAxes)    
+    plt.text(0.45, -0.1, "xG for", color=team_color, fontsize=12, ha='center', transform=ax.transAxes)
+    plt.text(0.55, -0.1, "xG against", color=against_color, fontsize=12, ha='center', transform=ax.transAxes)    
     return fig
 
 @st.cache_data
