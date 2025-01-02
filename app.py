@@ -75,6 +75,10 @@ def get_matches_df(team_url, today):
             goals_against = row.find("td", {"data-stat": "goals_against"}).text.strip()
             score = f"{goals_for} - {goals_against}" if match_venue == "(H)" else f"{goals_against} - {goals_for}"
 
+            # Get xG for and against
+            xg_for = row.find("td", {"data-stat": "xg_for"}).text.strip()
+            xg_against = row.find("td", {"data-stat": "xg_against"}).text.strip()
+
             # Get link to match report
             match_report_link_href = row.find("td", {"data-stat": "match_report"}).find("a")["href"]
             match_report_link = f"{FBREF_BASE_URL}{match_report_link_href}"
@@ -87,6 +91,8 @@ def get_matches_df(team_url, today):
                 "match_opponent": match_opponent,
                 "match_venue": match_venue,
                 "score": score,
+                "xg_for": xg_for,
+                "xg_against": xg_against,
                 "match_label": match_label,
                 "match_report_link": match_report_link
             })
@@ -290,6 +296,7 @@ if selected_team:
     today = datetime.now().date()
     team_url = teams_df.loc[teams_df["team_name"] == selected_team]["team_url"].values[0]
     matches_df = get_matches_df(team_url, today)
+    st.write(matches_df)
     
     selected_match = st.selectbox(
         "Select a match", 
