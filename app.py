@@ -92,8 +92,8 @@ def get_matches_df(team_url, today):
                 "match_opponent": match_opponent,
                 "match_venue": match_venue,
                 "score": score,
-                "xg_for": float(xg_for),
-                "xg_against": float(xg_against),
+                "xg_for": float(xg_for) if xg_for else None,
+                "xg_against": float(xg_against) if xg_against else None,
                 "match_label": match_label,
                 "match_report_link": match_report_link
             })
