@@ -201,7 +201,6 @@ def init_visualisation():
 
 @st.cache_data
 def create_trendline(home_team, match_data):
-    st.write(match_data)
     fig, ax = init_visualisation()
 
     # plt customizations
