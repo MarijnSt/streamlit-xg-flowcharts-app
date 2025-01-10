@@ -247,9 +247,8 @@ def create_trendline(home_team, match_data):
                                        frameon=False)
             ax.add_artist(opponent_ab)
         except Exception as e:
-            print(f"Error loading logo for {opponent}: {str(e)}")  # Debug print
+            print(f"Error loading logo for {opponent}: {str(e)}")
 
-    # add text under x-axis
     return fig
 
 @st.cache_data
