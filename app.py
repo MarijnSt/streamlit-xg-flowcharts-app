@@ -201,6 +201,7 @@ def init_visualisation():
 
 @st.cache_data
 def create_trendline(home_team, match_data):
+    st.write(match_data)
     fig, ax = init_visualisation()
 
     # plt customizations
@@ -234,9 +235,23 @@ def create_trendline(home_team, match_data):
     plt.scatter(y=match_data["xg_for"], x=match_data.index, label="xG for", s=20, facecolors=VIZ_BACKGROUND_COLOR, edgecolors=team_color, zorder=10)
     plt.scatter(y=match_data["xg_against"], x=match_data.index, label="xG against", s=20, facecolors=VIZ_BACKGROUND_COLOR, edgecolors=against_color, zorder=10)
 
+    # Add opponent logos on x-axis with debug print
+    #plt.subplots_adjust(bottom=0.2)  # Move this up before adding logos
+    for idx, opponent in enumerate(match_data["match_opponent"]):
+        try:
+            logo_path = f"static/logo-{opponent.lower().replace(' ', '-')}.png"
+            opponent_logo = mpimg.imread(logo_path)
+            opponent_imagebox = OffsetImage(opponent_logo, zoom=0.15, alpha=0.5)
+            opponent_ab = AnnotationBbox(opponent_imagebox, (idx, -0.05), 
+                                       xycoords=('data', 'axes fraction'),
+                                       frameon=False)
+            ax.add_artist(opponent_ab)
+        except Exception as e:
+            print(f"Error loading logo for {opponent}: {str(e)}")  # Debug print
+
     # add text under x-axis
-    plt.text(0.45, -0.1, "xG for", color=team_color, fontsize=12, ha='center', transform=ax.transAxes)
-    plt.text(0.55, -0.1, "xG against", color=against_color, fontsize=12, ha='center', transform=ax.transAxes)    
+    # plt.text(0.45, -0.1, "xG for", color=team_color, fontsize=12, ha='center', transform=ax.transAxes)
+    # plt.text(0.55, -0.1, "xG against", color=against_color, fontsize=12, ha='center', transform=ax.transAxes)
     return fig
 
 @st.cache_data
