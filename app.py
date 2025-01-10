@@ -222,11 +222,11 @@ def create_trendline(home_team, match_data):
     home_ab = AnnotationBbox(home_imagebox, (0.95, 1.15), xycoords='axes fraction', frameon=False)
     ax.add_artist(home_ab)
 
-    # add title
+    # add heading
     title = f"{home_team} xG Trendline"
     subtitle = "Jupiler Pro League 2024-2025"
     ax.text(0.5, 1.15, title, color=team_color, fontsize=16, ha='center', transform=ax.transAxes)
-    ax.text(0.5, 1.10, subtitle, color=team_color, fontsize=12, ha='center', transform=ax.transAxes)
+    ax.text(0.5, 1.09, subtitle, color=team_color, fontsize=10, ha='center', transform=ax.transAxes)
 
     # plot trendline
     plt.plot(match_data["xg_for"], label="xG for", color=team_color)
@@ -237,7 +237,6 @@ def create_trendline(home_team, match_data):
     plt.scatter(y=match_data["xg_against"], x=match_data.index, label="xG against", s=20, facecolors=VIZ_BACKGROUND_COLOR, edgecolors=against_color, zorder=10)
 
     # Add opponent logos on x-axis with debug print
-    #plt.subplots_adjust(bottom=0.2)  # Move this up before adding logos
     for idx, opponent in enumerate(match_data["match_opponent"]):
         try:
             logo_path = f"static/logo-{opponent.lower().replace(' ', '-')}.png"
@@ -251,8 +250,6 @@ def create_trendline(home_team, match_data):
             print(f"Error loading logo for {opponent}: {str(e)}")  # Debug print
 
     # add text under x-axis
-    # plt.text(0.45, -0.1, "xG for", color=team_color, fontsize=12, ha='center', transform=ax.transAxes)
-    # plt.text(0.55, -0.1, "xG against", color=against_color, fontsize=12, ha='center', transform=ax.transAxes)
     return fig
 
 @st.cache_data
