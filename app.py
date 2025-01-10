@@ -188,7 +188,7 @@ def init_visualisation():
     plt.rcParams['font.family'] = prop.get_name()
     plt.rcParams.update({
         'text.color': VIZ_BLACK_COLOR,
-        'axes.labelcolor': VIZ_GREY_COLOR,
+        'axes.labelcolor': matplotlib.colors.to_rgba(VIZ_GREY_COLOR, alpha=0.3),
         'axes.edgecolor': VIZ_GREY_COLOR,
         'xtick.color': VIZ_GREY_COLOR,
         'ytick.color': VIZ_GREY_COLOR,
@@ -197,6 +197,10 @@ def init_visualisation():
     plt.grid(True, alpha=0.2)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_alpha(0.3)
+    ax.spines['bottom'].set_alpha(0.3)
+    ax.tick_params(axis='y', colors=matplotlib.colors.to_rgba(VIZ_GREY_COLOR, alpha=0.3))
+    ax.tick_params(axis='x', colors=matplotlib.colors.to_rgba(VIZ_GREY_COLOR, alpha=0.3))
     return fig, ax
 
 @st.cache_data
@@ -204,8 +208,6 @@ def create_trendline(home_team, match_data):
     fig, ax = init_visualisation()
 
     # plt customizations
-    ax.spines['left'].set_alpha(0.3)
-    ax.tick_params(axis='y', colors=matplotlib.colors.to_rgba(VIZ_GREY_COLOR, alpha=0.3))
     plt.xticks([])
     ax.spines['bottom'].set_visible(False)
 
