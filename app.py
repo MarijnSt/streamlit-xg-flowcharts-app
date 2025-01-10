@@ -188,7 +188,7 @@ def init_visualisation():
     plt.rcParams['font.family'] = prop.get_name()
     plt.rcParams.update({
         'text.color': VIZ_BLACK_COLOR,
-        'axes.labelcolor': VIZ_GREY_COLOR,
+        'axes.labelcolor': matplotlib.colors.to_rgba(VIZ_GREY_COLOR, alpha=0.3),
         'axes.edgecolor': VIZ_GREY_COLOR,
         'xtick.color': VIZ_GREY_COLOR,
         'ytick.color': VIZ_GREY_COLOR,
@@ -197,6 +197,10 @@ def init_visualisation():
     plt.grid(True, alpha=0.2)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_alpha(0.3)
+    ax.spines['bottom'].set_alpha(0.3)
+    ax.tick_params(axis='y', colors=matplotlib.colors.to_rgba(VIZ_GREY_COLOR, alpha=0.3))
+    ax.tick_params(axis='x', colors=matplotlib.colors.to_rgba(VIZ_GREY_COLOR, alpha=0.3))
     return fig, ax
 
 @st.cache_data
@@ -204,8 +208,6 @@ def create_trendline(home_team, match_data):
     fig, ax = init_visualisation()
 
     # plt customizations
-    ax.spines['left'].set_alpha(0.3)
-    ax.tick_params(axis='y', colors=matplotlib.colors.to_rgba(VIZ_GREY_COLOR, alpha=0.3))
     plt.xticks([])
     ax.spines['bottom'].set_visible(False)
 
@@ -220,11 +222,11 @@ def create_trendline(home_team, match_data):
     home_ab = AnnotationBbox(home_imagebox, (0.95, 1.15), xycoords='axes fraction', frameon=False)
     ax.add_artist(home_ab)
 
-    # add title
+    # add heading
     title = f"{home_team} xG Trendline"
     subtitle = "Jupiler Pro League 2024-2025"
     ax.text(0.5, 1.15, title, color=team_color, fontsize=16, ha='center', transform=ax.transAxes)
-    ax.text(0.5, 1.10, subtitle, color=team_color, fontsize=12, ha='center', transform=ax.transAxes)
+    ax.text(0.5, 1.09, subtitle, color=team_color, fontsize=10, ha='center', transform=ax.transAxes)
 
     # plot trendline
     plt.plot(match_data["xg_for"], label="xG for", color=team_color)
@@ -234,9 +236,19 @@ def create_trendline(home_team, match_data):
     plt.scatter(y=match_data["xg_for"], x=match_data.index, label="xG for", s=20, facecolors=VIZ_BACKGROUND_COLOR, edgecolors=team_color, zorder=10)
     plt.scatter(y=match_data["xg_against"], x=match_data.index, label="xG against", s=20, facecolors=VIZ_BACKGROUND_COLOR, edgecolors=against_color, zorder=10)
 
-    # add text under x-axis
-    plt.text(0.45, -0.1, "xG for", color=team_color, fontsize=12, ha='center', transform=ax.transAxes)
-    plt.text(0.55, -0.1, "xG against", color=against_color, fontsize=12, ha='center', transform=ax.transAxes)    
+    # Add opponent logos on x-axis with debug print
+    for idx, opponent in enumerate(match_data["match_opponent"]):
+        try:
+            logo_path = f"static/logo-{opponent.lower().replace(' ', '-')}.png"
+            opponent_logo = mpimg.imread(logo_path)
+            opponent_imagebox = OffsetImage(opponent_logo, zoom=0.15, alpha=0.5)
+            opponent_ab = AnnotationBbox(opponent_imagebox, (idx, -0.05), 
+                                       xycoords=('data', 'axes fraction'),
+                                       frameon=False)
+            ax.add_artist(opponent_ab)
+        except Exception as e:
+            print(f"Error loading logo for {opponent}: {str(e)}")
+
     return fig
 
 @st.cache_data
