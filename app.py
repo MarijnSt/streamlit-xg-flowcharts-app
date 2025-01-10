@@ -188,7 +188,6 @@ def init_visualisation():
     plt.rcParams['font.family'] = prop.get_name()
     plt.rcParams.update({
         'text.color': VIZ_BLACK_COLOR,
-        'axes.labelcolor': matplotlib.colors.to_rgba(VIZ_GREY_COLOR, alpha=0.3),
         'axes.edgecolor': VIZ_GREY_COLOR,
         'xtick.color': VIZ_GREY_COLOR,
         'ytick.color': VIZ_GREY_COLOR,
@@ -201,6 +200,8 @@ def init_visualisation():
     ax.spines['bottom'].set_alpha(0.3)
     ax.tick_params(axis='y', colors=matplotlib.colors.to_rgba(VIZ_GREY_COLOR, alpha=0.3))
     ax.tick_params(axis='x', colors=matplotlib.colors.to_rgba(VIZ_GREY_COLOR, alpha=0.3))
+    ax.xaxis.label.set_color(matplotlib.colors.to_rgba(VIZ_GREY_COLOR, alpha=0.3))
+    ax.yaxis.label.set_color(matplotlib.colors.to_rgba(VIZ_GREY_COLOR, alpha=0.3))
     return fig, ax
 
 @st.cache_data
