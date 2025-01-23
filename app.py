@@ -24,25 +24,32 @@ VIZ_BLACK_COLOR = "#0a0c08"
 VIZ_GREY_COLOR = "#7D7C84"
 
 # CACHED FUNCTIONS
-@st.cache_data
+@st.cache_data(ttl=60)
 def get_teams_df():
     response = requests.get(COMPETITION_URL)
     soup = BeautifulSoup(response.text, 'html.parser')
 
-    table = soup.find('table', {'id': 'results2024-2025371_overall'})
-    teams_data = []
-    for row in table.find("tbody").find_all("tr"):
-        team_cell = row.find("td", {"data-stat": "team"})
-        team_name = team_cell.text.strip()
-        if team_name:
-            team_url = team_cell.find("a")["href"]
-            teams_data.append({
-                "team_name": team_name, 
-                "team_url": f"{FBREF_BASE_URL}/{team_url}", 
-            })
+    # FBref throws different errors when they have server issues. 
+    # If we can't find the table, we can assume the problem is on their side.
+    # TODO: Don't rely on fetching fbref data each time, build a db with the data and write a script to update it.
 
-    teams_df = pd.DataFrame(teams_data)
-    return teams_df
+    try:
+        table = soup.find('table', {'id': 'results2024-2025371_overall'})
+        teams_data = []
+        for row in table.find("tbody").find_all("tr"):
+            team_cell = row.find("td", {"data-stat": "team"})
+            team_name = team_cell.text.strip()
+            if team_name:
+                team_url = team_cell.find("a")["href"]
+                teams_data.append({
+                    "team_name": team_name, 
+                    "team_url": f"{FBREF_BASE_URL}/{team_url}", 
+                })
+
+        teams_df = pd.DataFrame(teams_data)
+        return teams_df
+    except Exception as e:
+        return pd.DataFrame()
 
 @st.cache_data
 def get_matches_df(team_url, today):
@@ -345,11 +352,15 @@ def create_match_visualisation(home_team, away_team, match_data, home_shots_df, 
 st.title("Belgian Pro League xG")
 
 teams_df = get_teams_df()
-selected_team = st.selectbox(
-    "Select a team", 
-    sorted(teams_df["team_name"].tolist()),
-    index=None
-)
+selected_team = None
+if teams_df.empty:
+    st.write("We're unable to fetch data from FBRef. Please try again later.")
+else:
+    selected_team = st.selectbox(
+        "Select a team",
+        sorted(teams_df["team_name"].tolist()),
+        index=None
+    )
 
 if selected_team:
     today = datetime.now().date()
