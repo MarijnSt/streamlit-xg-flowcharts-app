@@ -403,7 +403,8 @@ if selected_team and selected_match:
         events_df = get_events_df(match_report_link, home_team, away_team)
 
     # Create visualisation
-    fig = create_match_visualisation(home_team, away_team, match_data, home_shots_df, away_shots_df, events_df)
+    with st.spinner(f"Creating visualisation for {home_team} vs {away_team}..."):
+        fig = create_match_visualisation(home_team, away_team, match_data, home_shots_df, away_shots_df, events_df)
 
     # Show plot
     st.pyplot(fig)
