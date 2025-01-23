@@ -24,7 +24,7 @@ VIZ_BLACK_COLOR = "#0a0c08"
 VIZ_GREY_COLOR = "#7D7C84"
 
 # CACHED FUNCTIONS
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=60, show_spinner=False)
 def get_teams_df():
     response = requests.get(COMPETITION_URL)
     soup = BeautifulSoup(response.text, 'html.parser')
@@ -51,7 +51,7 @@ def get_teams_df():
     except Exception as e:
         return pd.DataFrame()
 
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def get_matches_df(team_url, today):
     response = requests.get(team_url)
     soup = BeautifulSoup(response.text, 'html.parser')
@@ -108,7 +108,7 @@ def get_matches_df(team_url, today):
     matches_df = pd.DataFrame(matches_data)
     return matches_df
 
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def get_shots_df(match_report_link):
     all_shots_df = pd.read_html(match_report_link, attrs={"id": "shots_all"}, header=1)[0]
     # Filter out spacer rows
@@ -119,7 +119,7 @@ def get_shots_df(match_report_link):
     shots_df["event_minute"] = shots_df["event_minute"].apply(lambda x: int(float(x.split("+")[0]) if "+" in str(x) else int(float(x))))
     return shots_df
 
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def create_team_shots_df(shots_df, team_name):
     # Filter for team, sort by minute and reset index
     df = shots_df.loc[shots_df["team_name"] == team_name].sort_values(by="event_minute").reset_index(drop=True)
@@ -144,7 +144,7 @@ def create_team_shots_df(shots_df, team_name):
     })
     return pd.concat([start_record, df, end_record], ignore_index=True)
 
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def get_events_df(match_report_link, home_team, away_team):
     response = requests.get(match_report_link)
     soup = BeautifulSoup(response.text, 'html.parser')
@@ -185,7 +185,7 @@ def get_events_df(match_report_link, home_team, away_team):
 
     return pd.DataFrame(events_list)
 
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def init_visualisation():
     fig, ax = plt.subplots(figsize = (10, 5))
     fig.set_facecolor(VIZ_BACKGROUND_COLOR)
@@ -211,7 +211,7 @@ def init_visualisation():
     ax.yaxis.label.set_color(matplotlib.colors.to_rgba(VIZ_GREY_COLOR, alpha=0.3))
     return fig, ax
 
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def create_trendline(home_team, match_data):
     fig, ax = init_visualisation()
 
@@ -259,7 +259,7 @@ def create_trendline(home_team, match_data):
 
     return fig
 
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def create_match_visualisation(home_team, away_team, match_data, home_shots_df, away_shots_df, events_df):
     fig, ax = init_visualisation()
 
@@ -351,7 +351,9 @@ def create_match_visualisation(home_team, away_team, match_data, home_shots_df, 
 # STREAMLIT APP
 st.title("Belgian Pro League xG")
 
-teams_df = get_teams_df()
+with st.spinner("Fetching teams data..."):
+    teams_df = get_teams_df()
+
 selected_team = None
 if teams_df.empty:
     st.write("We're unable to fetch data from FBRef. Please try again later.")
@@ -365,10 +367,14 @@ else:
 if selected_team:
     today = datetime.now().date()
     team_url = teams_df.loc[teams_df["team_name"] == selected_team]["team_url"].values[0]
-    matches_df = get_matches_df(team_url, today)
+    
+    with st.spinner(f"Fetching matches data for {selected_team}..."):
+        matches_df = get_matches_df(team_url, today)
 
     # plot trendline
-    fig = create_trendline(selected_team, matches_df)
+    with st.spinner(f"Creating xG trendline for {selected_team}..."):
+        fig = create_trendline(selected_team, matches_df)
+    
     st.pyplot(fig)
     
     selected_match = st.selectbox(
@@ -385,15 +391,16 @@ if selected_team and selected_match:
     home_team = selected_team if match_data["match_venue"] == "(H)" else match_data["match_opponent"]
     away_team = selected_team if match_data["match_venue"] == "(A)" else match_data["match_opponent"]
 
-    # Get shots dataframe
-    shots_df = get_shots_df(match_report_link)
+    with st.spinner(f"Fetching match details for {home_team} vs {away_team}..."):
+        # Get shots dataframe
+        shots_df = get_shots_df(match_report_link)
 
-    # Create dataframes for home and away teams xg steps on flowchart
-    home_shots_df = create_team_shots_df(shots_df, home_team)
-    away_shots_df = create_team_shots_df(shots_df, away_team)
+        # Create dataframes for home and away teams xg steps on flowchart
+        home_shots_df = create_team_shots_df(shots_df, home_team)
+        away_shots_df = create_team_shots_df(shots_df, away_team)
 
-    # Create events dataframe for event markers on flowchart
-    events_df = get_events_df(match_report_link, home_team, away_team)
+        # Create events dataframe for event markers on flowchart
+        events_df = get_events_df(match_report_link, home_team, away_team)
 
     # Create visualisation
     fig = create_match_visualisation(home_team, away_team, match_data, home_shots_df, away_shots_df, events_df)
