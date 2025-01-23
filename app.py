@@ -322,13 +322,26 @@ def create_match_visualisation(home_team, away_team, match_data, home_shots_df, 
                     marker = "x"
 
             # add event marker
-            ax.scatter(
-                x = row["event_minute"],
-                y = row["cumulative_xg"],
-                color = color,
-                marker = marker,
-                alpha = 0.5
-            )
+            if row["event_type"] == "Red card":
+                ax.scatter(
+                    x = row["event_minute"],
+                    y = row["cumulative_xg"],
+                    color = color,
+                    marker = marker,
+                    alpha=0.5,
+                    zorder = 10
+                )
+            else:
+                ax.scatter(
+                    x = row["event_minute"],
+                    y = row["cumulative_xg"],
+                    color = color,
+                    marker = marker,
+                    facecolors = VIZ_BACKGROUND_COLOR,
+                    edgecolors = color,
+                    s=20,
+                    zorder = 10
+                )
 
             # annotate event
             ax.annotate(
@@ -351,7 +364,7 @@ def create_match_visualisation(home_team, away_team, match_data, home_shots_df, 
 # STREAMLIT APP
 st.title("Belgian Pro League xG")
 
-with st.spinner("Fetching teams data..."):
+with st.spinner("Fetching teams..."):
     teams_df = get_teams_df()
 
 selected_team = None
@@ -368,7 +381,7 @@ if selected_team:
     today = datetime.now().date()
     team_url = teams_df.loc[teams_df["team_name"] == selected_team]["team_url"].values[0]
     
-    with st.spinner(f"Fetching matches data for {selected_team}..."):
+    with st.spinner(f"Fetching {selected_team} games..."):
         matches_df = get_matches_df(team_url, today)
 
     # plot trendline
