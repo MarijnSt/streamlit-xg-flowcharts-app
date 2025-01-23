@@ -132,7 +132,7 @@ def create_team_shots_df(shots_df, team_name):
         "team_name": [team_name], 
         "xg": [0], 
         "outcome": [None], 
-        "cumulative_xg": [0]
+        "cumulative_xg": [0.01]
     })
     end_record = pd.DataFrame({
         "event_minute": [90], 
@@ -263,10 +263,14 @@ def create_trendline(home_team, match_data):
 def create_match_visualisation(home_team, away_team, match_data, home_shots_df, away_shots_df, events_df):
     fig, ax = init_visualisation()
 
-    # plt customizations
-    plt.xticks([0, 15, 30, 45, 60, 75, 90])
-    plt.xlabel("Minute")
-    plt.ylabel("Cumulative xG")
+    # Set axis
+    ax.set_xlim(0, 90)
+    ax.set_ylim(0, max(home_shots_df["cumulative_xg"].max(), away_shots_df["cumulative_xg"].max()) * 1.1)
+    ax.set_xticks([0, 15, 30, 45, 60, 75, 90])
+    ax.set_yticks([y for y in ax.get_yticks() if y >= 0])
+
+    ax.set_xlabel("Minute")
+    ax.set_ylabel("Cumulative xG")
 
     # team colors
     team_colors_df = get_team_colors()
