@@ -368,18 +368,21 @@ def create_match_visualisation(home_team, away_team, match_data, home_shots_df, 
 # STREAMLIT APP
 st.title("Belgian Pro League xG")
 
-with st.spinner("Fetching teams..."):
-    teams_df = get_teams_df()
+st.write("This app depends on FBRef's xG data which is no longer available. I'm trying to find an alternative.")
+st.write("Please check back later.")
+
+# with st.spinner("Fetching teams..."):
+#     teams_df = get_teams_df()
 
 selected_team = None
-if teams_df.empty:
-    st.write("We're unable to fetch data from FBRef. Please try again later.")
-else:
-    selected_team = st.selectbox(
-        "Select a team",
-        sorted(teams_df["team_name"].tolist()),
-        index=None
-    )
+# if teams_df.empty:
+#     st.write("We're unable to fetch data from FBRef. Please try again later.")
+# else:
+#     selected_team = st.selectbox(
+#         "Select a team",
+#         sorted(teams_df["team_name"].tolist()),
+#         index=None
+#     )
 
 if selected_team:
     today = datetime.now().date()
